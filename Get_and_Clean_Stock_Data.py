@@ -1,8 +1,11 @@
-import numpy as np, pandas as pd, quandl
+import numpy as np
+import pandas as pd
+import quandl
 
 def get_data_from_quandl (tickers, start_col, end_col):
     '''
-    This function specifically gets stocks from Quandl's WIKI dataset. The start and end columns refers to (adjusted) OHLC, volume.
+    This function specifically gets stocks from Quandl's WIKI dataset. 
+    The start and end columns refers to (adjusted) OHLC, volume.
     '''
     quandl.ApiConfig.api_key = 'APIKEYFILLER' # Insert your own API Key
     quandl.ApiConfig.api_version = '2015-04-09' # recommended version

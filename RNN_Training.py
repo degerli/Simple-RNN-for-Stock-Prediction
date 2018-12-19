@@ -1,10 +1,17 @@
-''' The RNN will have 3 layers, 50 recurrent neurons in that layer, and the neurons will 
-be unraveled over 10 time steps since each training instance will be 10 inputs long. Each 
-training instance is a randomly selected sequence of 10 consecutive days. The 
-targets are a sequence of inputs, but shifted 1 day into the future.'''
+''' 
+    The RNN will have 3 layers, 
+    50 recurrent neurons in that layer, 
+    and the neurons will be unraveled over 10 time steps 
+    since each training instance will be 10 inputs long. 
+    Each training instance is a randomly selected sequence of 10 consecutive days. 
+    The targets are a sequence of inputs, 
+    but shifted 1 day into the future.
+'''
 
 import os
-import numpy as np, pandas as pd, tensorflow as tf
+import numpy as np
+import pandas as pd
+import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # To prevent tensorflow from printing out INFO messages
 
 def next_batch (batch_size, n_steps, df):
@@ -19,7 +26,8 @@ def next_batch (batch_size, n_steps, df):
     final_y = np.empty((1, n_steps, df.shape[1]))
     # Find a sequence, then concatenate it vertically.
     for i in range (batch_size):
-        # Get a random number between 0 and the maximum row of dataframe - number of steps - 1 (to account for shifting of 1 in the future)
+        # Get a random number between 0 and the maximum row of dataframe - number of steps - 1
+        # (to account for shifting of 1 in the future)
         random_number = np.random.randint(0, df.shape[0] - n_steps - 1)
         x = df[random_number: random_number + n_steps].values
         x = np.reshape(x, (1, n_steps, df.shape[1]))
@@ -30,13 +38,23 @@ def next_batch (batch_size, n_steps, df):
     return final_x[1:], final_y[1:] # Index except the first to ignore the placeholder of 0s.
 
 
-''' Leaky RELU is here if we want to switch or if the computing time is too slow'''
+''' Leaky RELU is here if we want to switch or if the computing time is too slow.'''
 def leaky_relu (z, name=None):
     return tf.maximum(.01*z, z, name=name)
 
-def create_RNN_layers (train, n_steps, columns, n_neurons, n_layers, learning_rate, n_iterations, batch_size, train_keep_prob, file_name):
+def create_RNN_layers (train, n_steps, columns, n_neurons, n_layers, 
+                       learning_rate, n_iterations, batch_size, 
+                       train_keep_prob, file_name):
     ''' 
-    This function takes in the train set, number of unraveled time steps, the stock columns (OHLC, volume), number of neurons in each layer, number of layers, learning rate, number of iterations for training, batch size of the training, and the drop out probability. 
+        This function takes in the train set, 
+        number of unraveled time steps,
+        the stock columns (OHLC, volume), 
+        number of neurons in each layer, 
+        number of layers, 
+        learning rate, 
+        number of iterations for training, 
+        batch size of the training, 
+        and the drop out probability. 
     '''
 
     n_inputs = len (columns)
@@ -46,11 +64,13 @@ def create_RNN_layers (train, n_steps, columns, n_neurons, n_layers, learning_ra
     keep_prob = tf.placeholder_with_default(1.0, shape=()) # For Dropout
     
     '''
-    Creates the layers and introduces dropout to reduce overfitting.
-    GRUCell creates copies of the cell to build the unrolled RNN (one for each time step). GRU over LSTM because it is faster.
-    We will use ELU for faster computing time and to avoid the dying ReLU problems.
+        Creates the layers and introduces dropout to reduce overfitting.
+        GRUCell creates copies of the cell to build the unrolled RNN (one for each time step). 
+        GRU over LSTM because it is faster.
+        We will use ELU for faster computing time and to avoid the dying ReLU problems.
 
-    For each time step, the neurons output a vector of size equal to the number of neurons. But we want a single output at each time step, so we use OutputProjectionWrapper.
+        For each time step, the neurons output a vector of size equal to the number of neurons. 
+        But we want a single output at each time step, so we use OutputProjectionWrapper.
     '''
     layers = [tf.contrib.rnn.GRUCell(num_units=n_neurons,activation=tf.nn.elu)
              for layer in range(n_layers)]
@@ -88,9 +108,21 @@ def create_RNN_layers (train, n_steps, columns, n_neurons, n_layers, learning_ra
 
 def predict_next_days (test, plot_column, n_steps, outputs, n_future_iter, file_name, saver, X, y):
     ''' 
-    This function takes in the test data, the single column used to predicting stocks (like the close price), number of unraveled time steps, outputs of dynamic rnn, number of future iterations that one wants to predict, the file name of the restored tensorflow graph, X placeholder, and y placeholder.
-    It restores the checkpoint created by create_RNN_layers, and uses the first n_steps to create the prediction of one time step shifted over (but we will take the last instance)
-    The output is the first n_steps of the stock values used to predict, then the predicted values (there are n_future_iter of them).
+        This function takes in the test data, 
+        the single column used to predicting stocks (like the close price), 
+        number of unraveled time steps, 
+        outputs of dynamic rnn, 
+        number of future iterations that one wants to predict, 
+        the file name of the restored tensorflow graph, 
+        X placeholder, 
+        and y placeholder.
+        
+        It restores the checkpoint created by create_RNN_layers, 
+        and uses the first n_steps to create the prediction of one time step shifted over 
+        (but we will take the last instance)
+        
+        The output is the first n_steps of the stock values used to predict, 
+        then the predicted values (there are n_future_iter of them).
     '''
     columns = test.columns
     n_inputs = len (columns)
@@ -111,12 +143,17 @@ def predict_next_days (test, plot_column, n_steps, outputs, n_future_iter, file_
         output_pred = np.asarray(sequence)
     return output_pred
 
-def create_predictions_for_entire_test_set (test, plot_column, n_steps, outputs, n_future_iter, file_name, saver, X, y):
+def create_predictions_for_entire_test_set (test, plot_column, n_steps, outputs, 
+                                            n_future_iter, file_name, saver, X, y):
     '''
-    This function creates prediction for the entire test set. 
-    It takes in the same variables as predict_next_days.
-    The function predicts the next days (based on n_future_iter), appends it to the starting sequence, then drops the first instance of the test_copy to update.
-    The function returns an array of the prediction.
+        This function creates prediction for the entire test set. 
+        
+        It takes in the same variables as predict_next_days.
+        The function predicts the next days (based on n_future_iter), 
+        appends it to the starting sequence, 
+        then drops the first instance of the test_copy to update.
+        
+        The function returns an array of the prediction.
     '''
     test_copy = test.copy()
     n_test_rows = test.shape[0]
